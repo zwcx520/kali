@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kali Linux 工具中文教程 | 官方主页</title>
+<meta name="description" content="Kali Linux 全部 775+ 安全工具中文使用教程官方门户 - 黑客风格学习平台">
+
+<!-- Bootstrap 5 (CDN) -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Font Awesome 6 (CDN) -->
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css" rel="stylesheet">
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+SC:wght@300;400;500;700;900&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+
+<style>
+:root{
+    --bg:#05080d;
+    --bg2:#0a0f17;
+    --bg3:#111824;
+    --ink:#c9d1d9;
+    --ink-bright:#f0f6fc;
+    --muted:#6e7681;
+    --rule:#1f2937;
+    --accent:#00ff9c;          /* 终端绿 */
+    --accent2:#00d4ff;          /* 赛博青 */
+    --accent3:#ff2e63;          /* 警示红 */
+    --accent4:#a855f7;          /* 紫电 */
+    --accent5:#ffb800;          /* 琥珀 */
+    --glow:0 0 20px rgba(0,255,156,.5);
+    --glow-cyan:0 0 20px rgba(0,212,255,.5);
+}
+
+*{box-sizing:border-box}
+
+html,body{
+    margin:0;padding:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Noto Sans SC',-apple-system,sans-serif;
+    overflow-x:hidden;
+    scroll-behavior:smooth;
+}
+
+/* 矩阵雨背景画布 */
+#matrixCanvas{
+    position:fixed;
+    top:0;left:0;
+    width:100%;height:100%;
+    z-index:0;
+    opacity:.18;
+    pointer-events:none;
+}
+
+/* 网格背景 */
+body::before{
+    content:'';
+    position:fixed;
+    inset:0;
+    background-image:
+        linear-gradient(rgba(0,255,156,.04) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(0,255,156,.04) 1px,transparent 1px);
+    background-size:40px 40px;
+    z-index:0;
+    pointer-events:none;
+    mask-image:radial-gradient(ellipse at center,#000 30%,transparent 75%);
+    -webkit-mask-image:radial-gradient(ellipse at center,#000 30%,transparent 75%);
+}
+
+/* 扫描线效果 */
+body::after{
+    content:'';
+    position:fixed;
+    inset:0;
+    background:repeating-linear-gradient(
+        0deg,
+        rgba(0,0,0,0) 0px,
+        rgba(0,0,0,0) 2px,
+        rgba(0,255,156,.015) 3px,
+        rgba(0,0,0,0) 4px
+    );
+    z-index:1;
+    pointer-events:none;
+}
+
+a{color:var(--accent2);text-decoration:none;transition:color .2s}
+a:hover{color:var(--accent)}
+
+code,.mono{font-family:'JetBrains Mono',monospace}
+
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:linear-gradient(var(--accent),var(--accent2));border-radius:5px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+
+/* === 开机引导界面 === */
+#bootScreen{
+    position:fixed;
+    inset:0;
+    background:#000;
+    z-index:9999;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    font-family:'JetBrains Mono',monospace;
+    color:var(--accent);
+    transition:opacity .6s ease;
+}
+#bootScreen.fade-out{opacity:0;pointer-events:none}
+
+.boot-logo{
+    font-family:'Orbitron',sans-serif;
+    font-size:clamp(28px,6vw,64px);
+    font-weight:900;
+    color:var(--accent);
+    text-shadow:var(--glow);
+    letter-spacing:.1em;
+    margin-bottom:8px;
+    animation:flicker 3s infinite;
+}
+@keyframes flicker{
+    0%,18%,22%,25%,53%,57%,100%{opacity:1;text-shadow:var(--glow)}
+    20%,24%,55%{opacity:.6;text-shadow:none}
+}
+
+.boot-sub{
+    color:var(--muted);
+    font-size:13px;
+    margin-bottom:32px;
+    letter-spacing:.3em;
+}
+
+.boot-log{
+    width:min(680px,90vw);
+    height:240px;
+    overflow:hidden;
+    font-size:12.5px;
+    line-height:1.7;
+    color:var(--accent);
+    text-shadow:0 0 6px rgba(0,255,156,.6);
+}
+.boot-log .line{opacity:0;animation:typeIn .05s forwards}
+.boot-log .line .ok{color:var(--accent);margin-left:8px}
+.boot-log .line .warn{color:var(--accent5);margin-left:8px}
+@keyframes typeIn{to{opacity:1}}
+
+.boot-cursor{
+    display:inline-block;
+    width:9px;height:16px;
+    background:var(--accent);
+    vertical-align:middle;
+    margin-left:4px;
+    animation:blink 1s steps(2) infinite;
+}
+@keyframes blink{50%{opacity:0}}
+
+.boot-enter{
+    margin-top:32px;
+    padding:12px 36px;
+    background:transparent;
+    border:1px solid var(--accent);
+    color:var(--accent);
+    font-family:'JetBrains Mono',monospace;
+    font-size:14px;
+    letter-spacing:.2em;
+    cursor:pointer;
+    opacity:0;
+    transition:all .25s;
+    text-shadow:var(--glow);
+    box-shadow:0 0 0 rgba(0,255,156,0);
+}
+.boot-enter.show{opacity:1;animation:pulse 1.6s infinite}
+@keyframes pulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(0,255,156,.5)}
+    50%{box-shadow:0 0 0 14px rgba(0,255,156,0)}
+}
+.boot-enter:hover{background:var(--accent);color:#000;text-shadow:none}
+
+/* === 主应用容器 === */
+#app{display:none;position:relative;z-index:2}
+#app.show{display:block;animation:appIn .8s ease}
+@keyframes appIn{
+    from{opacity:0;transform:translateY(20px)}
+    to{opacity:1;transform:translateY(0)}
+}
+
+/* === 顶部导航 === */
+.topbar{
+    position:fixed;
+    top:0;left:0;right:0;
+    height:64px;
+    background:rgba(5,8,13,.85);
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--rule);
+    z-index:1000;
+    display:flex;
+    align-items:center;
+    padding:0 24px;
+    gap:20px;
+}
+.topbar .brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    color:var(--ink-bright);
+    font-family:'Orbitron',sans-serif;
+    font-weight:700;
+    font-size:17px;
+    letter-spacing:.06em;
+}
+.brand-logo{
+    width:38px;height:38px;
+    border-radius:9px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:flex;align-items:center;justify-content:center;
+    color:#000;
+    font-size:18px;
+    box-shadow:var(--glow-cyan);
+}
+.brand span{color:var(--accent)}
+
+.topbar nav{
+    display:flex;
+    gap:6px;
+    margin-left:auto;
+}
+.topbar nav a{
+    color:var(--ink);
+    padding:8px 14px;
+    border-radius:8px;
+    font-size:14px;
+    transition:all .2s;
+}
+.topbar nav a:hover{color:var(--accent);background:rgba(0,255,156,.08)}
+
+.topbar .status{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 14px;
+    border:1px solid var(--rule);
+    border-radius:20px;
+    font-size:12px;
+    color:var(--muted);
+    font-family:'JetBrains Mono',monospace;
+}
+.status .dot{
+    width:8px;height:8px;
+    border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 8px var(--accent);
+    animation:pulse 2s infinite;
+}
+
+.menu-btn{
+    display:none;
+    background:none;
+    border:none;
+    color:var(--ink);
+    font-size:22px;
+    cursor:pointer;
+    margin-left:auto;
+}
+
+/* === Hero === */
+.hero{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:100px 20px 60px;
+    position:relative;
+}
+
+.hero .tag{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 16px;
+    border:1px solid var(--accent);
+    border-radius:20px;
+    color:var(--accent);
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:.2em;
+    margin-bottom:28px;
+    background:rgba(0,255,156,.05);
+    text-shadow:0 0 8px rgba(0,255,156,.6);
+}
+
+/* Glitch 标题 */
+.glitch-title{
+    font-family:'Orbitron',sans-serif;
+    font-size:clamp(36px,8vw,92px);
+    font-weight:900;
+    line-height:1.05;
+    color:var(--ink-bright);
+    margin:0 0 8px;
+    position:relative;
+    letter-spacing:.02em;
+}
+.glitch-title .g{
+    background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent4));
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+    position:relative;
+    display:inline-block;
+}
+.glitch-title .g::before,
+.glitch-title .g::after{
+    content:attr(data-text);
+    position:absolute;
+    top:0;left:0;
+    width:100%;
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+.glitch-title .g::before{
+    background:var(--accent3);
+    -webkit-background-clip:text;
+    background-clip:text;
+    animation:glitch1 3s infinite;
+    clip-path:polygon(0 0,100% 0,100% 33%,0 33%);
+}
+.glitch-title .g::after{
+    background:var(--accent2);
+    -webkit-background-clip:text;
+    background-clip:text;
+    animation:glitch2 2.5s infinite;
+    clip-path:polygon(0 67%,100% 67%,100% 100%,0 100%);
+}
+@keyframes glitch1{
+    0%,100%{transform:translate(0)}
+    20%{transform:translate(-3px,2px)}
+    40%{transform:translate(-2px,-2px)}
+    60%{transform:translate(2px,2px)}
+    80%{transform:translate(2px,-2px)}
+}
+@keyframes glitch2{
+    0%,100%{transform:translate(0)}
+    20%{transform:translate(3px,-2px)}
+    40%{transform:translate(2px,2px)}
+    60%{transform:translate(-2px,-2px)}
+    80%{transform:translate(-2px,2px)}
+}
+
+.hero .subtitle{
+    color:var(--muted);
+    font-size:clamp(14px,2vw,18px);
+    max-width:680px;
+    margin:18px auto 36px;
+    line-height:1.7;
+}
+
+.terminal-line{
+    font-family:'JetBrains Mono',monospace;
+    color:var(--accent);
+    font-size:14px;
+    margin-bottom:36px;
+    text-shadow:0 0 6px rgba(0,255,156,.4);
+}
+.terminal-line .prompt{color:var(--accent2)}
+.terminal-line .caret{
+    display:inline-block;
+    width:8px;height:14px;
+    background:var(--accent);
+    vertical-align:middle;
+    margin-left:2px;
+    animation:blink 1s steps(2) infinite;
+}
+
+.cta-row{
+    display:flex;
+    gap:16px;
+    flex-wrap:wrap;
+    justify-content:center;
+}
+.btn-cyber{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding:14px 32px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    color:#000;
+    border:none;
+    border-radius:10px;
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:.04em;
+    cursor:pointer;
+    transition:all .25s;
+    box-shadow:0 4px 20px rgba(0,255,156,.35);
+    text-decoration:none;
+}
+.btn-cyber:hover{
+    transform:translateY(-2px);
+    box-shadow:0 8px 32px rgba(0,255,156,.55);
+    color:#000;
+}
+.btn-ghost{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding:14px 32px;
+    background:transparent;
+    color:var(--ink-bright);
+    border:1px solid var(--rule);
+    border-radius:10px;
+    font-weight:500;
+    font-size:15px;
+    cursor:pointer;
+    transition:all .25s;
+    text-decoration:none;
+}
+.btn-ghost:hover{
+    border-color:var(--accent);
+    color:var(--accent);
+    background:rgba(0,255,156,.05);
+}
+
+/* 滚动提示 */
+.scroll-hint{
+    position:absolute;
+    bottom:24px;
+    left:50%;
+    transform:translateX(-50%);
+    color:var(--muted);
+    font-size:11px;
+    text-align:center;
+    font-family:'JetBrains Mono',monospace;
+    letter-spacing:.2em;
+    animation:bounce 2s infinite;
+}
+.scroll-hint i{display:block;font-size:18px;margin-top:6px;color:var(--accent)}
+@keyframes bounce{
+    0%,100%{transform:translateX(-50%) translateY(0)}
+    50%{transform:translateX(-50%) translateY(-8px)}
+}
+
+/* === 统计区 === */
+.section{
+    padding:80px 24px;
+    max-width:1200px;
+    margin:0 auto;
+}
+.section-title{
+    text-align:center;
+    margin-bottom:48px;
+}
+.section-title .label{
+    color:var(--accent);
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:.3em;
+    margin-bottom:10px;
+    text-transform:uppercase;
+}
+.section-title h2{
+    font-family:'Orbitron',sans-serif;
+    font-size:clamp(26px,4vw,40px);
+    font-weight:700;
+    color:var(--ink-bright);
+    margin:0;
+}
+.section-title h2 span{
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+.section-title p{
+    color:var(--muted);
+    margin:14px auto 0;
+    max-width:560px;
+    font-size:14px;
+}
+
+.stat-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:20px;
+}
+.stat-card{
+    background:linear-gradient(135deg,rgba(0,255,156,.04),rgba(0,212,255,.02));
+    border:1px solid var(--rule);
+    border-radius:14px;
+    padding:28px 24px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+    transition:all .3s;
+}
+.stat-card::before{
+    content:'';
+    position:absolute;
+    top:0;left:0;right:0;
+    height:2px;
+    background:linear-gradient(90deg,transparent,var(--accent),transparent);
+    opacity:0;
+    transition:opacity .3s;
+}
+.stat-card:hover{
+    border-color:var(--accent);
+    transform:translateY(-4px);
+    box-shadow:0 10px 30px rgba(0,255,156,.15);
+}
+.stat-card:hover::before{opacity:1}
+.stat-card .icon{
+    width:48px;height:48px;
+    margin:0 auto 14px;
+    border-radius:12px;
+    background:rgba(0,255,156,.1);
+    color:var(--accent);
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;
+}
+.stat-card .num{
+    font-family:'Orbitron',sans-serif;
+    font-size:36px;
+    font-weight:900;
+    color:var(--ink-bright);
+    line-height:1;
+    margin-bottom:6px;
+}
+.stat-card .num .plus{color:var(--accent)}
+.stat-card .label{
+    color:var(--muted);
+    font-size:13px;
+    letter-spacing:.05em;
+}
+
+/* === 版本入口 === */
+.version-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(340px,1fr));
+    gap:24px;
+}
+.version-card{
+    background:var(--bg2);
+    border:1px solid var(--rule);
+    border-radius:18px;
+    padding:32px;
+    position:relative;
+    overflow:hidden;
+    transition:all .35s;
+    cursor:pointer;
+    text-decoration:none;
+    color:inherit;
+    display:block;
+}
+.version-card::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:linear-gradient(135deg,transparent 60%,var(--card-color,rgba(0,255,156,.1)));
+    opacity:0;
+    transition:opacity .35s;
+    pointer-events:none;
+}
+.version-card::after{
+    content:'';
+    position:absolute;
+    top:0;left:0;
+    width:100%;height:3px;
+    background:var(--card-bar,var(--accent));
+    transform:scaleX(0);
+    transform-origin:left;
+    transition:transform .35s;
+}
+.version-card:hover{
+    border-color:var(--card-bar,var(--accent));
+    transform:translateY(-6px);
+    box-shadow:0 16px 40px rgba(0,0,0,.5);
+}
+.version-card:hover::before{opacity:1}
+.version-card:hover::after{transform:scaleX(1)}
+
+.vc-head{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    margin-bottom:20px;
+}
+.vc-icon{
+    width:56px;height:56px;
+    border-radius:14px;
+    background:var(--card-bar,var(--accent));
+    color:#000;
+    display:flex;align-items:center;justify-content:center;
+    font-size:24px;
+    flex-shrink:0;
+}
+.vc-tag{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--muted);
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    margin-bottom:4px;
+}
+.vc-title{
+    font-family:'Orbitron',sans-serif;
+    font-size:22px;
+    font-weight:700;
+    color:var(--ink-bright);
+    margin:0;
+}
+.vc-desc{
+    color:var(--muted);
+    font-size:14px;
+    line-height:1.7;
+    margin-bottom:20px;
+}
+.vc-features{
+    list-style:none;
+    padding:0;margin:0 0 24px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+.vc-features li{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:13px;
+    color:var(--ink);
+}
+.vc-features li i{
+    color:var(--card-bar,var(--accent));
+    font-size:12px;
+    width:14px;
+}
+.vc-enter{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    color:var(--card-bar,var(--accent));
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    letter-spacing:.1em;
+    transition:gap .25s;
+}
+.version-card:hover .vc-enter{gap:14px}
+
+/* === 功能特性 === */
+.feature-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+    gap:20px;
+}
+.feature-card{
+    background:var(--bg2);
+    border:1px solid var(--rule);
+    border-radius:14px;
+    padding:28px;
+    transition:all .3s;
+    position:relative;
+    overflow:hidden;
+}
+.feature-card:hover{
+    border-color:var(--accent2);
+    transform:translateY(-4px);
+}
+.feature-card .fc-icon{
+    width:44px;height:44px;
+    border-radius:10px;
+    background:rgba(0,212,255,.1);
+    color:var(--accent2);
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;
+    margin-bottom:16px;
+}
+.feature-card h4{
+    color:var(--ink-bright);
+    font-size:16px;
+    font-weight:700;
+    margin:0 0 8px;
+}
+.feature-card p{
+    color:var(--muted);
+    font-size:13px;
+    line-height:1.7;
+    margin:0;
+}
+
+/* === 分类预览 === */
+.cat-cloud{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    justify-content:center;
+    max-width:900px;
+    margin:0 auto;
+}
+.cat-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 16px;
+    background:var(--bg2);
+    border:1px solid var(--rule);
+    border-radius:20px;
+    color:var(--ink);
+    font-size:13px;
+    transition:all .25s;
+    cursor:pointer;
+    text-decoration:none;
+}
+.cat-chip:hover{
+    border-color:var(--accent);
+    color:var(--accent);
+    background:rgba(0,255,156,.06);
+    transform:translateY(-2px);
+}
+.cat-chip i{color:var(--accent2);font-size:12px}
+.cat-chip .count{
+    color:var(--muted);
+    font-size:11px;
+    font-family:'JetBrains Mono',monospace;
+}
+
+/* === 终端演示 === */
+.terminal-demo{
+    background:#000;
+    border:1px solid var(--rule);
+    border-radius:14px;
+    overflow:hidden;
+    max-width:880px;
+    margin:0 auto;
+    box-shadow:0 20px 60px rgba(0,255,156,.1);
+}
+.terminal-head{
+    background:var(--bg3);
+    padding:10px 16px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    border-bottom:1px solid var(--rule);
+}
+.terminal-head .dots{display:flex;gap:6px}
+.terminal-head .dots span{
+    width:12px;height:12px;border-radius:50%;
+    display:inline-block;
+}
+.terminal-head .dots .r{background:var(--accent3)}
+.terminal-head .dots .y{background:var(--accent5)}
+.terminal-head .dots .g{background:var(--accent)}
+.terminal-head .title{
+    color:var(--muted);
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    margin-left:auto;
+}
+.terminal-body{
+    padding:20px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    line-height:1.8;
+    color:var(--accent);
+    min-height:280px;
+    text-shadow:0 0 6px rgba(0,255,156,.4);
+}
+.terminal-body .cmd{color:var(--ink-bright)}
+.terminal-body .prompt{color:var(--accent2)}
+.terminal-body .out{color:var(--muted);padding-left:8px}
+.terminal-body .ok{color:var(--accent)}
+.terminal-body .warn{color:var(--accent5)}
+
+/* === 免责声明 === */
+.disclaimer{
+    background:linear-gradient(135deg,rgba(255,46,99,.06),rgba(168,85,247,.04));
+    border:1px solid rgba(255,46,99,.3);
+    border-radius:14px;
+    padding:28px 32px;
+    max-width:900px;
+    margin:0 auto;
+    display:flex;
+    gap:18px;
+    align-items:flex-start;
+}
+.disclaimer .icon{
+    width:44px;height:44px;
+    border-radius:10px;
+    background:rgba(255,46,99,.15);
+    color:var(--accent3);
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;
+    flex-shrink:0;
+}
+.disclaimer h4{
+    color:var(--ink-bright);
+    margin:0 0 8px;
+    font-size:16px;
+}
+.disclaimer p{
+    color:var(--muted);
+    font-size:13px;
+    line-height:1.7;
+    margin:0;
+}
+
+/* === Footer === */
+footer{
+    border-top:1px solid var(--rule);
+    padding:40px 24px 28px;
+    text-align:center;
+    background:var(--bg2);
+    position:relative;
+    z-index:2;
+}
+footer .f-brand{
+    font-family:'Orbitron',sans-serif;
+    font-size:18px;
+    font-weight:700;
+    color:var(--ink-bright);
+    margin-bottom:8px;
+}
+footer .f-brand span{color:var(--accent)}
+footer p{
+    color:var(--muted);
+    font-size:13px;
+    margin:4px 0;
+}
+footer .f-links{
+    display:flex;
+    gap:18px;
+    justify-content:center;
+    margin:14px 0 20px;
+    flex-wrap:wrap;
+}
+footer .f-links a{
+    color:var(--muted);
+    font-size:13px;
+    transition:color .2s;
+}
+footer .f-links a:hover{color:var(--accent)}
+footer .copyright{
+    color:var(--muted);
+    font-size:12px;
+    font-family:'JetBrains Mono',monospace;
+    letter-spacing:.05em;
+    padding-top:18px;
+    border-top:1px solid var(--rule);
+    margin-top:18px;
+}
+
+/* === 返回顶部 === */
+.back-top{
+    position:fixed;
+    bottom:24px;right:24px;
+    width:46px;height:46px;
+    border-radius:50%;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    color:#000;
+    border:none;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;
+    z-index:900;
+    opacity:0;
+    transform:translateY(20px);
+    transition:all .3s;
+    box-shadow:0 4px 20px rgba(0,255,156,.4);
+}
+.back-top.show{opacity:1;transform:translateY(0)}
+.back-top:hover{transform:translateY(-3px) scale(1.05)}
+
+/* === 响应式 === */
+@media (max-width:768px){
+    .topbar nav{display:none}
+    .topbar .status{display:none}
+    .menu-btn{display:block}
+    .section{padding:60px 18px}
+    .version-grid{grid-template-columns:1fr}
+    .hero{padding:90px 18px 50px}
+    .disclaimer{flex-direction:column;padding:22px}
+}
+
+/* 移动端抽屉菜单 */
+.mobile-drawer{
+    position:fixed;
+    top:0;right:0;
+    width:280px;height:100vh;
+    background:var(--bg2);
+    border-left:1px solid var(--rule);
+    z-index:1100;
+    transform:translateX(100%);
+    transition:transform .3s ease;
+    padding:80px 24px 24px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+}
+.mobile-drawer.open{transform:translateX(0)}
+.mobile-drawer a{
+    color:var(--ink);
+    padding:12px 16px;
+    border-radius:8px;
+    font-size:15px;
+}
+.mobile-drawer a:hover{background:var(--bg3);color:var(--accent)}
+.drawer-overlay{
+    position:fixed;inset:0;
+    background:rgba(0,0,0,.6);
+    z-index:1050;
+    display:none;
+}
+.drawer-overlay.show{display:block}
+</style>
+</head>
+<body>
+
+<!-- 矩阵雨画布 -->
+<canvas id="matrixCanvas"></canvas>
+
+<!-- === 开机引导界面 === -->
+<div id="bootScreen">
+    <div class="boot-logo">KALI·CN</div>
+    <div class="boot-sub">SECURITY · TOOLS · TUTORIAL</div>
+    <div class="boot-log" id="bootLog"></div>
+    <button class="boot-enter" id="enterBtn" onclick="enterSystem()">
+        <i class="fas fa-chevron-right"></i> &nbsp;ENTER SYSTEM
+    </button>
+</div>
+
+<!-- === 主应用 === -->
+<div id="app">
+
+    <!-- 顶部导航 -->
+    <header class="topbar">
+        <a href="#hero" class="brand">
+            <div class="brand-logo"><i class="fas fa-dragon"></i></div>
+            Kali<span>·CN</span>
+        </a>
+        <nav>
+            <a href="#stats">数据</a>
+            <a href="#versions">版本</a>
+            <a href="#features">特性</a>
+            <a href="#categories">分类</a>
+            <a href="#demo">演示</a>
+        </nav>
+        <div class="status">
+            <span class="dot"></span>
+            <span id="clock">--:--:--</span>
+        </div>
+        <button class="menu-btn" onclick="toggleDrawer()">
+            <i class="fas fa-bars"></i>
+        </button>
+    </header>
+
+    <!-- 移动端抽屉 -->
+    <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+    <div class="mobile-drawer" id="mobileDrawer">
+        <a href="#stats" onclick="toggleDrawer()">数据统计</a>
+        <a href="#versions" onclick="toggleDrawer()">版本入口</a>
+        <a href="#features" onclick="toggleDrawer()">功能特性</a>
+        <a href="#categories" onclick="toggleDrawer()">工具分类</a>
+        <a href="#demo" onclick="toggleDrawer()">终端演示</a>
+        <a href="kali工具中文手册/index.html">进入手册版</a>
+        <a href="kali工具中文教程/index.html">进入教程版</a>
+    </div>
+
+    <!-- Hero -->
+    <section class="hero" id="hero">
+        <div class="tag">
+            <i class="fas fa-shield-halved"></i> OFFICIAL PORTAL · v2026
+        </div>
+        <h1 class="glitch-title">
+            KALI LINUX<br>
+            <span class="g" data-text="工具中文教程">工具中文教程</span>
+        </h1>
+        <div class="terminal-line">
+            <span class="prompt">root@kali:~#</span> ./access --target=中文教程 --mode=full<span class="caret"></span>
+        </div>
+        <p class="subtitle">
+            收录 Kali Linux 全部 <strong style="color:var(--accent)">775+</strong> 安全工具的中文使用教程，
+            覆盖信息收集、漏洞利用、密码攻击、无线安全、逆向工程等 <strong style="color:var(--accent2)">20</strong> 大分类。
+            纯前端 · 离线可用 · 黑客风格
+        </p>
+        <div class="cta-row">
+            <a href="kali工具中文手册/index.html" class="btn-cyber">
+                <i class="fas fa-book-atlas"></i> 进入手册版
+            </a>
+            <a href="kali工具中文教程/index.html" class="btn-ghost">
+                <i class="fas fa-graduation-cap"></i> 进入教程版
+            </a>
+        </div>
+        <div class="scroll-hint">
+            SCROLL DOWN
+            <i class="fas fa-chevron-down"></i>
+        </div>
+    </section>
+
+    <!-- 数据统计 -->
+    <section class="section" id="stats">
+        <div class="section-title">
+            <div class="label">// SYSTEM STATISTICS</div>
+            <h2>项目<span>数据</span></h2>
+            <p>全面的工具覆盖与详细的中文教程，构建完整的安全学习知识库</p>
+        </div>
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="icon"><i class="fas fa-tools"></i></div>
+                <div class="num"><span data-count="775">0</span><span class="plus">+</span></div>
+                <div class="label">安全工具</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon"><i class="fas fa-layer-group"></i></div>
+                <div class="num"><span data-count="20">0</span></div>
+                <div class="label">工具分类</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon"><i class="fas fa-terminal"></i></div>
+                <div class="num"><span data-count="8000">0</span><span class="plus">+</span></div>
+                <div class="label">命令示例</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon"><i class="fas fa-language"></i></div>
+                <div class="num">100<span class="plus">%</span></div>
+                <div class="label">中文教程</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 版本入口 -->
+    <section class="section" id="versions">
+        <div class="section-title">
+            <div class="label">// SELECT PORTAL</div>
+            <h2>选择<span>入口</span></h2>
+            <p>提供两个并行版本，满足不同使用场景与设备偏好</p>
+        </div>
+        <div class="version-grid">
+
+            <a href="kali工具中文手册/index.html" class="version-card" style="--card-bar:var(--accent);--card-color:rgba(0,255,156,.1)">
+                <div class="vc-head">
+                    <div class="vc-icon"><i class="fas fa-book-atlas"></i></div>
+                    <div>
+                        <div class="vc-tag">VERSION · ADVANCED</div>
+                        <h3 class="vc-title">中文手册版</h3>
+                    </div>
+                </div>
+                <p class="vc-desc">APP 式移动端导航，分块加载 775 个工具，全屏模态详情，支持视图栈返回。完整支持桌面端侧边栏与移动端 Tab 导航。</p>
+                <ul class="vc-features">
+                    <li><i class="fas fa-check"></i> 775 个工具 · 8 个数据分块</li>
+                    <li><i class="fas fa-check"></i> 内部视图栈导航（4 视图）</li>
+                    <li><i class="fas fa-check"></i> Markdown 教程解析</li>
+                    <li><i class="fas fa-check"></i> 全字段跨字段搜索</li>
+                    <li><i class="fas fa-check"></i> 桌面 / 移动端双布局</li>
+                </ul>
+                <span class="vc-enter">
+                    ACCESS PORTAL <i class="fas fa-arrow-right"></i>
+                </span>
+            </a>
+
+            <a href="kali工具中文教程/index.html" class="version-card" style="--card-bar:var(--accent2);--card-color:rgba(0,212,255,.1)">
+                <div class="vc-head">
+                    <div class="vc-icon"><i class="fas fa-graduation-cap"></i></div>
+                    <div>
+                        <div class="vc-tag">VERSION · CLASSIC</div>
+                        <h3 class="vc-title">中文教程版</h3>
+                    </div>
+                </div>
+                <p class="vc-desc">基于 Bootstrap 5 的经典文档站，单文件加载数据，全屏详情页，含详细命令解释与教程 HTML。结构清晰，易于扩展。</p>
+                <ul class="vc-features">
+                    <li><i class="fas fa-check"></i> ~819 个工具 · 单文件数据</li>
+                    <li><i class="fas fa-check"></i> 全屏详情页展示</li>
+                    <li><i class="fas fa-check"></i> 命令逐条中文解释</li>
+                    <li><i class="fas fa-check"></i> HTML 教程直接渲染</li>
+                    <li><i class="fas fa-check"></i> Bootstrap 响应式</li>
+                </ul>
+                <span class="vc-enter">
+                    ACCESS PORTAL <i class="fas fa-arrow-right"></i>
+                </span>
+            </a>
+
+        </div>
+    </section>
+
+    <!-- 功能特性 -->
+    <section class="section" id="features">
+        <div class="section-title">
+            <div class="label">// CORE FEATURES</div>
+            <h2>核心<span>特性</span></h2>
+            <p>纯前端实现，无需后端服务，打开即用</p>
+        </div>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="fc-icon"><i class="fas fa-bolt"></i></div>
+                <h4>纯前端离线运行</h4>
+                <p>使用 JS 全局变量加载数据，支持 file:// 协议直接打开，无需服务器与网络连接。</p>
+            </div>
+            <div class="feature-card">
+                <div class="fc-icon"><i class="fas fa-search"></i></div>
+                <h4>全字段智能搜索</h4>
+                <p>支持跨工具名称、描述、分类、命令、教程文本的多关键词联合检索，结果实时高亮。</p>
+            </div>
+            <div class="feature-card">
+                <div class="fc-icon"><i class="fas fa-mobile-screen"></i></div>
+                <h4>APP 式移动端</h4>
+                <p>底部 Tab 导航、底部抽屉分类、全屏搜索覆盖层、模态详情页，原生 App 般的体验。</p>
+            </div>
+            <div class="feature-card">
+                <div class="fc-icon"><i class="fas fa-code"></i></div>
+                <h4>命令逐条详解</h4>
+                <p>每条命令附中文解释，说明参数含义、使用场景与注意事项，便于实战理解。</p>
+            </div>
+            <div class="feature-card">
+                <div class="fc-icon"><i class="fas fa-book"></i></div>
+                <h4>中文教程内容</h4>
+                <p>每个工具均含中文使用教程，覆盖工作流程、参数说明、实战技巧，零基础友好。</p>
+            </div>
+            <div class="feature-card">
+                <div class="fc-icon"><i class="fas fa-copy"></i></div>
+                <h4>一键复制命令</h4>
+                <p>所有命令示例与安装指令支持一键复制到剪贴板，方便终端直接粘贴使用。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 分类预览 -->
+    <section class="section" id="categories">
+        <div class="section-title">
+            <div class="label">// TOOL CATEGORIES</div>
+            <h2>工具<span>分类</span></h2>
+            <p>覆盖 Kali Linux 全部 20 大工具分类，从信息收集到后渗透操作</p>
+        </div>
+        <div class="cat-cloud" id="catCloud"></div>
+    </section>
+
+    <!-- 终端演示 -->
+    <section class="section" id="demo">
+        <div class="section-title">
+            <div class="label">// LIVE TERMINAL</div>
+            <h2>终端<span>演示</span></h2>
+            <p>体验黑客风格的命令行交互</p>
+        </div>
+        <div class="terminal-demo">
+            <div class="terminal-head">
+                <div class="dots">
+                    <span class="r"></span><span class="y"></span><span class="g"></span>
+                </div>
+                <div class="title">root@kali: ~/tools</div>
+            </div>
+            <div class="terminal-body" id="terminalBody"></div>
+        </div>
+    </section>
+
+    <!-- 免责声明 -->
+    <section class="section">
+        <div class="disclaimer">
+            <div class="icon"><i class="fas fa-triangle-exclamation"></i></div>
+            <div>
+                <h4>免责声明</h4>
+                <p>本站内容仅供安全研究、教学学习和合法授权的渗透测试使用。请勿将工具用于任何非法用途，使用者需自行承担因不当使用产生的一切法律责任。请遵守所在地区的相关法律法规。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="f-brand">Kali<span>·CN</span></div>
+        <p>Kali Linux 工具中文教程官方门户</p>
+        <div class="f-links">
+            <a href="kali工具中文手册/index.html">中文手册版</a>
+            <a href="kali工具中文教程/index.html">中文教程版</a>
+            <a href="https://www.kali.org/tools/" target="_blank">官方数据源</a>
+        </div>
+        <div class="copyright">
+            // 2026 · BUILT WITH HTML · CSS · JAVASCRIPT · NO BACKEND
+        </div>
+    </footer>
+
+    <button class="back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+</div>
+
+<script>
+// ============================================================
+// 1. 矩阵雨背景
+// ============================================================
+(function(){
+    const canvas = document.getElementById('matrixCanvas');
+    const ctx = canvas.getContext('2d');
+    const chars = '01ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎ#$%&*+=';
+    let fontSize = 14;
+    let columns, drops;
+
+    function resize(){
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        columns = Math.floor(canvas.width / fontSize);
+        drops = new Array(columns).fill(0).map(()=>Math.random()*-100);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function draw(){
+        ctx.fillStyle = 'rgba(5,8,13,0.06)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#00ff9c';
+        ctx.font = fontSize + 'px JetBrains Mono';
+        for(let i=0; i<drops.length; i++){
+            const text = chars.charAt(Math.floor(Math.random()*chars.length));
+            ctx.fillText(text, i*fontSize, drops[i]*fontSize);
+            if(drops[i]*fontSize > canvas.height && Math.random() > 0.975){
+                drops[i] = 0;
+            }
+            drops[i]++;
+        }
+    }
+    setInterval(draw, 50);
+})();
+
+// ============================================================
+// 2. 开机引导序列
+// ============================================================
+const bootLines = [
+    '[ <span class="ok">OK</span> ] Initializing Kali-CN kernel v2026.8...',
+    '[ <span class="ok">OK</span> ] Loading security modules... nmap, metasploit, burpsuite',
+    '[ <span class="ok">OK</span> ] Mounting /data/tools_00.js ... 100 tools loaded',
+    '[ <span class="ok">OK</span> ] Mounting /data/tools_01.js ... 100 tools loaded',
+    '[ <span class="ok">OK</span> ] Mounting /data/tools_02.js ... 100 tools loaded',
+    '[ <span class="ok">OK</span> ] Mounting /data/tools_03.js ... 100 tools loaded',
+    '[ <span class="ok">OK</span> ] Mounting /data/tools_04.js ... 100 tools loaded',
+    '[ <span class="ok">OK</span> ] Mounting /data/tools_05.js ... 100 tools loaded',
+    '[ <span class="ok">OK</span> ] Mounting /data/tools_06.js ... 100 tools loaded',
+    '[ <span class="ok">OK</span> ] Mounting /data/tools_07.js ... 75 tools loaded',
+    '[ <span class="ok">OK</span> ] Total: 775 security tools registered',
+    '[ <span class="ok">OK</span> ] Loading 20 categories... done',
+    '[ <span class="warn">!!</span> ] Detected 8000+ command examples',
+    '[ <span class="ok">OK</span> ] Starting matrix rain daemon...',
+    '[ <span class="ok">OK</span> ] Initializing Chinese tutorial engine...',
+    '[ <span class="ok">OK</span> ] System ready. Welcome, operator.',
+];
+
+const bootLog = document.getElementById('bootLog');
+const enterBtn = document.getElementById('enterBtn');
+let bootIdx = 0;
+
+function appendBootLine(){
+    if(bootIdx >= bootLines.length){
+        enterBtn.classList.add('show');
+        return;
+    }
+    const line = document.createElement('div');
+    line.className = 'line';
+    line.innerHTML = bootLines[bootIdx] + ' <span class="boot-cursor"></span>';
+    bootLog.appendChild(line);
+    // 保持滚动到底部
+    bootLog.scrollTop = bootLog.scrollHeight;
+    // 移除上一行的光标
+    const prev = bootLog.querySelectorAll('.line .boot-cursor');
+    if(prev.length > 1){
+        prev[0].remove();
+    }
+    bootIdx++;
+    setTimeout(appendBootLine, 180 + Math.random()*120);
+}
+
+// 启动开机序列
+setTimeout(appendBootLine, 400);
+
+// 进入系统
+function enterSystem(){
+    const boot = document.getElementById('bootScreen');
+    const app = document.getElementById('app');
+    boot.classList.add('fade-out');
+    app.classList.add('show');
+    setTimeout(()=>{
+        boot.style.display = 'none';
+        // 启动数据计数动画
+        animateCounters();
+        // 启动终端演示
+        startTerminalDemo();
+        // 渲染分类云
+        renderCatCloud();
+    }, 600);
+}
+
+// 支持回车键进入
+document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter' && enterBtn.classList.contains('show')){
+        enterSystem();
+    }
+});
+
+// ============================================================
+// 3. 实时时钟
+// ============================================================
+function updateClock(){
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2,'0');
+    const m = String(now.getMinutes()).padStart(2,'0');
+    const s = String(now.getSeconds()).padStart(2,'0');
+    const el = document.getElementById('clock');
+    if(el) el.textContent = h+':'+m+':'+s;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ============================================================
+// 4. 数字计数动画
+// ============================================================
+function animateCounters(){
+    document.querySelectorAll('[data-count]').forEach(el=>{
+        const target = parseInt(el.dataset.count);
+        const duration = 1800;
+        const startTime = performance.now();
+        function step(now){
+            const progress = Math.min((now - startTime) / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const value = Math.floor(target * eased);
+            el.textContent = value.toLocaleString();
+            if(progress < 1) requestAnimationFrame(step);
+            else el.textContent = target.toLocaleString();
+        }
+        requestAnimationFrame(step);
+    });
+}
+
+// ============================================================
+// 5. 分类云渲染
+// ============================================================
+const categories = [
+    {cn:'信息收集', icon:'fa-satellite-dish', count:72},
+    {cn:'密码攻击', icon:'fa-key', count:46},
+    {cn:'Web应用分析', icon:'fa-globe', count:42},
+    {cn:'数字取证', icon:'fa-magnifying-glass', count:31},
+    {cn:'无线攻击', icon:'fa-wifi', count:24},
+    {cn:'漏洞利用工具', icon:'fa-crosshairs', count:20},
+    {cn:'后渗透操作', icon:'fa-user-secret', count:20},
+    {cn:'嗅探与欺骗', icon:'fa-network-wired', count:20},
+    {cn:'硬件黑客', icon:'fa-microchip', count:19},
+    {cn:'漏洞分析', icon:'fa-bug', count:19},
+    {cn:'隧道代理', icon:'fa-exchange-alt', count:18},
+    {cn:'逆向工程', icon:'fa-cogs', count:17},
+    {cn:'加密解密', icon:'fa-lock', count:13},
+    {cn:'系统库', icon:'fa-cube', count:11},
+    {cn:'数据库评估', icon:'fa-database', count:8},
+    {cn:'压力测试', icon:'fa-bolt', count:8},
+    {cn:'报告工具', icon:'fa-file-alt', count:6},
+    {cn:'开发工具', icon:'fa-code', count:6},
+    {cn:'社会工程学', icon:'fa-users', count:4},
+    {cn:'其他工具', icon:'fa-toolbox', count:371},
+];
+
+function renderCatCloud(){
+    const cloud = document.getElementById('catCloud');
+    if(!cloud) return;
+    cloud.innerHTML = categories.map(c=>`
+        <a href="kali工具中文手册/index.html" class="cat-chip">
+            <i class="fas ${c.icon}"></i>
+            ${c.cn}
+            <span class="count">${c.count}</span>
+        </a>
+    `).join('');
+}
+
+// ============================================================
+// 6. 终端演示
+// ============================================================
+const terminalScript = [
+    {type:'cmd', text:'whoami'},
+    {type:'out', text:'root'},
+    {type:'cmd', text:'uname -a'},
+    {type:'out', text:'Linux kali 6.8.0-kali #1 SMP x86_64 GNU/Linux'},
+    {type:'cmd', text:'ls /usr/share/kali-tools/'},
+    {type:'out', text:'information_gathering  password_attacks  web_analysis'},
+    {type:'out', text:'wireless_attacks  forensics  exploitation_tools'},
+    {type:'out', text:'reverse_engineering  sniffing_spoofing  ...'},
+    {type:'cmd', text:'nmap -sV --script vuln 192.168.1.0/24'},
+    {type:'out', text:'<span class="warn">[!]</span> Starting Nmap 7.94 scan...'},
+    {type:'out', text:'<span class="ok">[+]</span> Host is up (0.0023s latency)'},
+    {type:'out', text:'<span class="ok">[+]</span> 22/tcp   open  ssh     OpenSSH 9.2'},
+    {type:'out', text:'<span class="ok">[+]</span> 80/tcp   open  http    nginx 1.24.0'},
+    {type:'out', text:'<span class="ok">[+]</span> 443/tcp  open  https   nginx 1.24.0'},
+    {type:'cmd', text:'msfconsole -q -x "use exploit/multi/handler"'},
+    {type:'out', text:'<span class="ok">[*]</span> Started reverse TCP handler'},
+    {type:'cmd', text:'./access --portal=中文教程 --mode=full'},
+    {type:'out', text:'<span class="ok">[✓]</span> 775 tools loaded · 20 categories ready'},
+    {type:'out', text:'<span class="ok">[✓]</span> System online. Happy hacking!'},
+];
+
+function startTerminalDemo(){
+    const body = document.getElementById('terminalBody');
+    if(!body) return;
+    body.innerHTML = '';
+    let idx = 0;
+
+    function next(){
+        if(idx >= terminalScript.length){
+            // 循环播放
+            setTimeout(()=>{
+                body.innerHTML = '';
+                idx = 0;
+                next();
+            }, 3500);
+            return;
+        }
+        const item = terminalScript[idx];
+        const div = document.createElement('div');
+        if(item.type === 'cmd'){
+            div.innerHTML = '<span class="prompt">root@kali:~#</span> <span class="cmd">'+item.text+'</span><span class="boot-cursor"></span>';
+        } else {
+            div.className = 'out';
+            div.innerHTML = item.text;
+        }
+        body.appendChild(div);
+        body.scrollTop = body.scrollHeight;
+
+        // 移除前一个光标
+        const cursors = body.querySelectorAll('.boot-cursor');
+        if(cursors.length > 1) cursors[0].remove();
+
+        idx++;
+        const delay = item.type === 'cmd' ? 600 : 250;
+        setTimeout(next, delay);
+    }
+    next();
+}
+
+// ============================================================
+// 7. 返回顶部按钮
+// ============================================================
+window.addEventListener('scroll', ()=>{
+    const btn = document.getElementById('backTop');
+    if(window.scrollY > 500) btn.classList.add('show');
+    else btn.classList.remove('show');
+});
+
+// ============================================================
+// 8. 移动端抽屉
+// ============================================================
+function toggleDrawer(){
+    document.getElementById('mobileDrawer').classList.toggle('open');
+    document.getElementById('drawerOverlay').classList.toggle('show');
+}
+
+// 平滑滚动到锚点
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+    a.addEventListener('click', (e)=>{
+        const target = document.querySelector(a.getAttribute('href'));
+        if(target){
+            e.preventDefault();
+            window.scrollTo({top: target.offsetTop - 70, behavior:'smooth'});
+        }
+    });
+});
+</script>
+
+</body>
+</html>
